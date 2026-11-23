@@ -1,0 +1,25 @@
+# First start is interactive. The process prints every container and image,
+# then asks for a Compose file or Watchtower mode:
+#
+#   docker compose -f deployments/docker-compose.yaml run --rm deployment-agent
+#
+# Later restarts reuse the saved session and can stay in the background:
+#
+#   docker compose -f deployments/docker-compose.yaml up -d
+
+
+services:
+  deployment-agent:
+    build: ..
+    image: deployment-agent:local
+    container_name: deployment-agent
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - deployment-agent-state:/var/lib/deployment-agent
+    command: ["--state-dir", "/var/lib/deployment-agent", "--name", "deployment-agent"]
+
+volumes:
+  deployment-agent-state:
