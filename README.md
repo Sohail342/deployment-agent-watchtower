@@ -21,6 +21,12 @@ Private registries use the Docker credential store. A 401 asks once for a userna
 go build -o bin/agent ./cmd/agent
 ./bin/agent
 ```
+or run without build
+
+```shell
+go run ./cmd/agent
+```
+
 
 Flags:
 

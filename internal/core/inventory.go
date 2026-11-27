@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"deployment-agent/internal/discovery"
 	"deployment-agent/internal/docker"
 	"deployment-agent/internal/registry"
 )
@@ -284,7 +285,7 @@ func buildModel(containers []docker.Container, images []docker.Image) HostModel 
 				p.ConfigFiles = splitFiles(view.ConfigFiles)
 			}
 			if view.WorkDir != "" {
-				p.WorkDir = view.WorkDir
+				p.WorkDir = discovery.NormalizeComposePath(view.WorkDir)
 			}
 			if view.ComposeService != "" {
 				p.Services = append(p.Services, view.ComposeService)
@@ -334,7 +335,7 @@ func splitFiles(raw string) []string {
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		if part != "" {
-			out = append(out, part)
+			out = append(out, discovery.NormalizeComposePath(part))
 		}
 	}
 	return out

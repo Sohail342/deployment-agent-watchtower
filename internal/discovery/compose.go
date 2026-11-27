@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"sort"
+	"strings"
+	"unicode"
 
 	"github.com/compose-spec/compose-go/v2/cli"
 
@@ -23,6 +26,7 @@ type ComposeSet struct {
 // LoadCompose reads a compose file and pairs each service image with a
 // container from the live model when one exists.
 func LoadCompose(ctx context.Context, file, project string, containers []Container) (ComposeSet, error) {
+	file = NormalizeComposePath(file)
 	optsFns := []cli.ProjectOptionsFn{
 		cli.WithWorkingDirectory(filepath.Dir(file)),
 		cli.WithEnvFiles(),
@@ -82,4 +86,34 @@ func LoadCompose(ctx context.Context, file, project string, containers []Contain
 		set.Candidates = append(set.Candidates, cand)
 	}
 	return set, nil
+}
+
+// NormalizeComposePath turns a Compose label path into a path this process can open.
+// Docker Desktop on Windows records drive paths with a leading slash
+func NormalizeComposePath(path string) string {
+	path = strings.TrimSpace(path)
+	path = strings.Trim(path, `"'`)
+	original := path
+	if len(path) >= 3 && (path[0] == '/' || path[0] == '\\') && path[2] == ':' && isDriveLetter(path[1]) {
+		path = path[1:]
+	}
+	if runtime.GOOS == "windows" {
+		lower := strings.ToLower(path)
+		if strings.HasPrefix(lower, "/mnt/") && len(path) > 7 && path[6] == '/' && isDriveLetter(path[5]) {
+			path = string(unicode.ToUpper(rune(path[5]))) + `:\` + filepath.FromSlash(path[7:])
+		} else if len(path) >= 4 && path[0] == '/' && path[2] == '/' && isDriveLetter(path[1]) && !strings.Contains(path, ":") {
+			path = string(unicode.ToUpper(rune(path[1]))) + `:\` + filepath.FromSlash(path[3:])
+		}
+	}
+	if path == original {
+		return path
+	}
+	if path == "" {
+		return ""
+	}
+	return filepath.Clean(path)
+}
+
+func isDriveLetter(b byte) bool {
+	return (b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z')
 }

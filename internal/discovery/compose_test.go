@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -30,5 +31,19 @@ func TestLoadComposeMatchesRunningService(t *testing.T) {
 	}
 	if set.Candidates[1].Service != "web" || set.Candidates[1].ContainerID != "" {
 		t.Fatalf("web: %+v", set.Candidates[1])
+	}
+}
+
+func TestNormalizeComposePathStripsWindowsDriveSlash(t *testing.T) {
+	got := NormalizeComposePath(`/D:\projects\deployment_agent\deployments\docker-compose.yaml`)
+	if runtime.GOOS == "windows" {
+		want := `D:\projects\deployment_agent\deployments\docker-compose.yaml`
+		if got != want {
+			t.Fatalf("got %q want %q", got, want)
+		}
+		return
+	}
+	if got == "" || got[0] == '/' {
+		t.Fatalf("leading slash was kept: %q", got)
 	}
 }
